@@ -31,7 +31,7 @@ import httpx
 # ══════════════════════════════════════════
 
 # Botingizning Telegram Tokeni
-BOT_TOKEN = "8794761249:AAFZmEk3uOiOftuGFW15fhuvz170ITWiI4I"
+BOT_TOKEN = "8794761249:AAG7s6z51Y0yDoZjJJ6SwxoicTd30u3vIIA"
 
 # Adminlarning Telegram username'lari (boshida @ belgisiz)
 ADMIN_1_USERNAME = "ibrokhim_515"
