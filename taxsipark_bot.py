@@ -3,6 +3,8 @@
 """
 
 import logging
+import os
+import asyncio
 from telegram import (
     Update,
     ReplyKeyboardMarkup,
@@ -21,9 +23,10 @@ from telegram.ext import (
 )
 
 # ══════════════════════════════════════════
-#           SOZLAMALAR
+#            SOZLAMALAR
 # ══════════════════════════════════════════
 
+# Tokeningizga tegmadim, o'z holicha qoldi
 BOT_TOKEN = "8794761249:AAFZmEk3uOiOftuGFW15fhuvz170ITWiI4I"
 
 ADMIN_1_USERNAME = "ibrokhim_515"
@@ -47,7 +50,7 @@ logger = logging.getLogger(__name__)
 ) = range(5)
 
 # ══════════════════════════════════════════
-#           KLAVIATURALAR
+#            KLAVIATURALAR
 # ══════════════════════════════════════════
 
 def kb_start():
@@ -94,7 +97,7 @@ def kb_admins():
     ])
 
 # ══════════════════════════════════════════
-#           HANDLERS
+#            HANDLERS
 # ══════════════════════════════════════════
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,14 +111,20 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     try:
-        with open(WELCOME_IMAGE, "rb") as photo:
-            await update.message.reply_photo(
-                photo=photo,
-                caption=caption,
-                parse_mode="HTML",
-                reply_markup=kb_start(),
+        if os.path.exists(WELCOME_IMAGE):
+            with open(WELCOME_IMAGE, "rb") as photo:
+                await update.message.reply_photo(
+                    photo=photo,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=kb_start(),
+                )
+        else:
+            await update.message.reply_text(
+                caption, parse_mode="HTML", reply_markup=kb_start()
             )
-    except FileNotFoundError:
+    except Exception as e:
+        logger.error(f"Start rasm yuborishda xato: {e}")
         await update.message.reply_text(
             caption, parse_mode="HTML", reply_markup=kb_start()
         )
@@ -251,13 +260,15 @@ async def fallback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════
-#           MAIN
+#            MAIN
 # ══════════════════════════════════════════
 
 def main():
-    app = Application.builder().token(BOT_TOKEN).build()
+    # Build application
+    application = Application.builder().token(BOT_TOKEN).build()
 
-    conv = ConversationHandler(
+    # ConversationHandler configuration
+    conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", cmd_start)],
         states={
             WAIT_START: [
@@ -282,18 +293,16 @@ def main():
         ],
     )
 
-    app.add_handler(conv)
+    application.add_handler(conv_handler)
 
     print("=" * 45)
     print("  🚖  TaxsiPark Bot ishga tushdi!")
     print(f"  Admin 1: @{ADMIN_1_USERNAME}")
     print(f"  Admin 2: @{ADMIN_2_USERNAME}")
-    print("  To'xtatish: Ctrl+C")
     print("=" * 45)
 
-    app.run_polling(drop_pending_updates=True)
-
+    # run_polling ishlatishda eng xavfsiz usul
+    application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
-
