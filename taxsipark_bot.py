@@ -98,7 +98,40 @@ async def handle_taxsipark_menu(update: Update, context: ContextTypes.DEFAULT_TY
     if text == "📄 Hujjat yuborish":
         await update.message.reply_text("⬇️ Adminni tanlang:", reply_markup=kb_admins())
     elif text == "ℹ️ Ma'lumot":
-        await update.message.reply_text("🚖 TaxsiPark — haydovchilar uchun tezkor ro'yxatdan o'tish tizimi.")
+        await update.message.reply_text("🚖 TaxsiPark — haydovchilar uchun tezkor ro'yxatdan o'tish tizimi🚖 Safargo — haydovchilar uchun eng qulay taksopark! 🚖
+
+Assalomu alaykum! 👋
+Safargo sizga nafaqat ish, balki barqaror daromad va bonuslar ham beradi 💸
+
+🎁 Start bonus:
+Ro‘yxatdan o‘tganingiz zahoti 40 000 so‘m bonus sizniki!
+
+🔥 Har oy sovg‘alar:
+Safargo’da har oy yangi bonus va aksiyalar bo‘lib turadi 🎉
+
+👨‍👨‍👦 Do‘st olib keling – pul ishlang:
+Har bir do‘st uchun 50 000 so‘m
+(50 ta zakaz bajargach beriladi) 💰
+
+📉 Minimal foiz:
+Atigi 2,2% — siz uchun maksimal foyda ⚡
+
+🏆 Katta balans = katta bonus:
+1 mln so‘m yig‘ing — 50 000 so‘m bonus oling 🎯
+
+💳 Qulay to‘lov:
+Click / Payme orqali to‘ldiring va 5% keshbek oling 🔥
+
+📜 Ishonch va rasmiylik:
+Safargo — sertifikatlangan taksopark ✔️
+
+🚘 Qo‘shimcha imkoniyatlar:
+✅ Litsenziya nakleyka
+✅ Komfort / Komfort+ ochish
+✅ Blokdan chiqarish xizmati
+
+🚀 Safargo bilan ishlash — bu o‘sish, daromad va qulaylik!
+Bugunoq bizga qo‘shiling🔥  .")
     elif text == "🔙 Orqaga":
         await update.message.reply_text("🏠 Asosiy menyu:", reply_markup=kb_main())
         return MAIN_MENU
