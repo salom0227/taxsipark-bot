@@ -40,7 +40,7 @@ def kb_taxsipark():
 
 def kb_admins():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("👤 Admin", url=f"https://t.me/{ADMIN_USERNAME}")]
+        [InlineKeyboardButton("👤 Admin", url=f"https://t.me/{@SAFARGO_TAXI}")]
     ])
 
 # ══════════════════════════════════════════
