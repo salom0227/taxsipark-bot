@@ -4,6 +4,7 @@
 
 import logging
 import os
+import httpx
 from fastapi import FastAPI, Request
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ConversationHandler, filters, ContextTypes
@@ -11,7 +12,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, Conversati
 # ══════════════════════════════════════════
 BOT_TOKEN = "8794761249:AAG7s6z51Y0yDoZjJJ6SwxoicTd30u3vIIA"
 ADMIN_USERNAME = "@SAFARGO_TAXI"
-RENDER_URL = "https://taxsipark-bot.onrender.com"
+RENDER_URL = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE = "welcome.png"
 WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
 WEBHOOK_URL = f"{RENDER_URL}{WEBHOOK_PATH}"
@@ -40,7 +41,7 @@ def kb_taxsipark():
 
 def kb_admins():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("👤 Admin", url=f"https://t.me/{@SAFARGO_TAXI}")]
+        [InlineKeyboardButton("👤 Admin", url=f"https://t.me/{ADMIN_USERNAME}")]
     ])
 
 # ══════════════════════════════════════════
@@ -169,7 +170,21 @@ async def startup():
     await ptb_app.initialize()
     await ptb_app.bot.set_webhook(url=WEBHOOK_URL)
     logger.info(f"✅ Webhook o'rnatildi: {WEBHOOK_URL}")
+    # Keep-alive — har 10 daqiqada o'ziga ping
+    import asyncio
+    asyncio.create_task(keep_alive())
 
 @web.on_event("shutdown")
 async def shutdown():
     await ptb_app.shutdown()
+
+async def keep_alive():
+    import asyncio
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                r = await client.get(f"{RENDER_URL}/health", timeout=10)
+                logger.info(f"⏰ Keep-alive ping: {r.status_code}")
+            except Exception as e:
+                logger.warning(f"⏰ Keep-alive xatosi: {e}")
+            await asyncio.sleep(600)  # 10 daqiqa
