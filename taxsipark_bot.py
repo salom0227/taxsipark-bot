@@ -98,40 +98,33 @@ async def handle_taxsipark_menu(update: Update, context: ContextTypes.DEFAULT_TY
     if text == "📄 Hujjat yuborish":
         await update.message.reply_text("⬇️ Adminni tanlang:", reply_markup=kb_admins())
     elif text == "ℹ️ Ma'lumot":
-        await update.message.reply_text("🚖 TaxsiPark — haydovchilar uchun tezkor ro'yxatdan o'tish tizimi🚖 Safargo — haydovchilar uchun eng qulay taksopark! 🚖
-
-Assalomu alaykum! 👋
-Safargo sizga nafaqat ish, balki barqaror daromad va bonuslar ham beradi 💸
-
-🎁 Start bonus:
-Ro‘yxatdan o‘tganingiz zahoti 40 000 so‘m bonus sizniki!
-
-🔥 Har oy sovg‘alar:
-Safargo’da har oy yangi bonus va aksiyalar bo‘lib turadi 🎉
-
-👨‍👨‍👦 Do‘st olib keling – pul ishlang:
-Har bir do‘st uchun 50 000 so‘m
-(50 ta zakaz bajargach beriladi) 💰
-
-📉 Minimal foiz:
-Atigi 2,2% — siz uchun maksimal foyda ⚡
-
-🏆 Katta balans = katta bonus:
-1 mln so‘m yig‘ing — 50 000 so‘m bonus oling 🎯
-
-💳 Qulay to‘lov:
-Click / Payme orqali to‘ldiring va 5% keshbek oling 🔥
-
-📜 Ishonch va rasmiylik:
-Safargo — sertifikatlangan taksopark ✔️
-
-🚘 Qo‘shimcha imkoniyatlar:
-✅ Litsenziya nakleyka
-✅ Komfort / Komfort+ ochish
-✅ Blokdan chiqarish xizmati
-
-🚀 Safargo bilan ishlash — bu o‘sish, daromad va qulaylik!
-Bugunoq bizga qo‘shiling🔥  .")
+        await update.message.reply_text(
+            "🚖 TaxsiPark — haydovchilar uchun tezkor ro'yxatdan o'tish tizimi\n"
+            "🚖 Safargo — haydovchilar uchun eng qulay taksopark! 🚖\n\n"
+            "Assalomu alaykum! 👋\n"
+            "Safargo sizga nafaqat ish, balki barqaror daromad va bonuslar ham beradi 💸\n\n"
+            "🎁 Start bonus:\n"
+            "Ro'yxatdan o'tganingiz zahoti 40 000 so'm bonus sizniki!\n\n"
+            "🔥 Har oy sovg'alar:\n"
+            "Safargo'da har oy yangi bonus va aksiyalar bo'lib turadi 🎉\n\n"
+            "👨‍👨‍👦 Do'st olib keling – pul ishlang:\n"
+            "Har bir do'st uchun 50 000 so'm\n"
+            "(50 ta zakaz bajargach beriladi) 💰\n\n"
+            "📉 Minimal foiz:\n"
+            "Atigi 2,2% — siz uchun maksimal foyda ⚡\n\n"
+            "🏆 Katta balans = katta bonus:\n"
+            "1 mln so'm yig'ing — 50 000 so'm bonus oling 🎯\n\n"
+            "💳 Qulay to'lov:\n"
+            "Click / Payme orqali to'ldiring va 5% keshbek oling 🔥\n\n"
+            "📜 Ishonch va rasmiylik:\n"
+            "Safargo — sertifikatlangan taksopark ✔️\n\n"
+            "🚘 Qo'shimcha imkoniyatlar:\n"
+            "✅ Litsenziya nakleyka\n"
+            "✅ Komfort / Komfort+ ochish\n"
+            "✅ Blokdan chiqarish xizmati\n\n"
+            "🚀 Safargo bilan ishlash — bu o'sish, daromad va qulaylik!\n"
+            "Bugunoq bizga qo'shiling 🔥"
+        )
     elif text == "🔙 Orqaga":
         await update.message.reply_text("🏠 Asosiy menyu:", reply_markup=kb_main())
         return MAIN_MENU
@@ -141,7 +134,6 @@ Bugunoq bizga qo‘shiling🔥  .")
 #   FASTAPI + WEBHOOK
 # ══════════════════════════════════════════
 
-# PTB Application — global
 ptb_app = Application.builder().token(BOT_TOKEN).build()
 
 conv = ConversationHandler(
@@ -157,7 +149,6 @@ conv = ConversationHandler(
 )
 ptb_app.add_handler(conv)
 
-# FastAPI
 web = FastAPI()
 
 @web.get("/")
@@ -181,11 +172,3 @@ async def startup():
 @web.on_event("shutdown")
 async def shutdown():
     await ptb_app.shutdown()
-```
-
-## `requirements.txt`
-```
-python-telegram-bot[job-queue]==21.3
-fastapi
-uvicorn
-httpx
