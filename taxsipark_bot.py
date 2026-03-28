@@ -10,8 +10,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, Conversati
 
 # ══════════════════════════════════════════
 BOT_TOKEN = "8794761249:AAG7s6z51Y0yDoZjJJ6SwxoicTd30u3vIIA"
-ADMIN_1_USERNAME = "ibrokhim_515"
-ADMIN_2_USERNAME = "SAFARGO_TAXI"
+ADMIN_USERNAME = "@SAFARGO_TAXI"
 RENDER_URL = "https://taxsipark-bot.onrender.com"
 WELCOME_IMAGE = "welcome.png"
 WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
@@ -41,8 +40,7 @@ def kb_taxsipark():
 
 def kb_admins():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("👤 Admin 1", url=f"https://t.me/{ADMIN_1_USERNAME}")],
-        [InlineKeyboardButton("👤 Admin 2", url=f"https://t.me/{ADMIN_2_USERNAME}")]
+        [InlineKeyboardButton("👤 Admin", url=f"https://t.me/{ADMIN_USERNAME}")]
     ])
 
 # ══════════════════════════════════════════
@@ -88,7 +86,10 @@ async def handle_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return TAXSIPARK_MENU
     elif text == "📞 Bog'lanish":
         await update.message.reply_text(
-            f"📞 Adminlar:\n\n👤 @{ADMIN_1_USERNAME}\n👤 @{ADMIN_2_USERNAME}",
+            "📞 Bog'lanish uchun:\n\n"
+            "📱 Telefon: +998(55)515-00-54\n"
+            "🕐 24/7 ishlaydi\n\n"
+            "👤 Admin: @ibrokhim_515",
             reply_markup=kb_main()
         )
     return MAIN_MENU
