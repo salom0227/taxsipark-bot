@@ -4,6 +4,7 @@
 
 import logging
 import os
+import asyncio
 import httpx
 from fastapi import FastAPI, Request
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
@@ -11,7 +12,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, Conversati
 
 # ══════════════════════════════════════════
 BOT_TOKEN = "8794761249:AAG7s6z51Y0yDoZjJJ6SwxoicTd30u3vIIA"
-ADMIN_USERNAME = "@SAFARGO_TAXI"
+ADMIN_USERNAME = "SAFARGO_TAXI"
 RENDER_URL = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE = "welcome.png"
 WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
@@ -133,6 +134,60 @@ async def handle_taxsipark_menu(update: Update, context: ContextTypes.DEFAULT_TY
     return TAXSIPARK_MENU
 
 # ══════════════════════════════════════════
+#   GLOBAL FALLBACK — state yo'qolsa ham ishlaydi
+# ══════════════════════════════════════════
+
+async def global_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "🚖 TaxsiPark haqida":
+        await update.message.reply_text("🚖 Bo'limni tanlang:", reply_markup=kb_taxsipark())
+    elif text == "📞 Bog'lanish":
+        await update.message.reply_text(
+            "📞 Bog'lanish uchun:\n\n"
+            "📱 Telefon: +998(55)515-00-54\n"
+            "🕐 24/7 ishlaydi\n\n"
+            "👤 Admin: @ibrokhim_515",
+            reply_markup=kb_main()
+        )
+    elif text == "📄 Hujjat yuborish":
+        await update.message.reply_text("⬇️ Adminni tanlang:", reply_markup=kb_admins())
+    elif text == "ℹ️ Ma'lumot":
+        await update.message.reply_text(
+            "🚖 TaxsiPark — haydovchilar uchun tezkor ro'yxatdan o'tish tizimi\n"
+            "🚖 Safargo — haydovchilar uchun eng qulay taksopark! 🚖\n\n"
+            "Assalomu alaykum! 👋\n"
+            "Safargo sizga nafaqat ish, balki barqaror daromad va bonuslar ham beradi 💸\n\n"
+            "🎁 Start bonus:\n"
+            "Ro'yxatdan o'tganingiz zahoti 40 000 so'm bonus sizniki!\n\n"
+            "🔥 Har oy sovg'alar:\n"
+            "Safargo'da har oy yangi bonus va aksiyalar bo'lib turadi 🎉\n\n"
+            "👨‍👨‍👦 Do'st olib keling – pul ishlang:\n"
+            "Har bir do'st uchun 50 000 so'm\n"
+            "(50 ta zakaz bajargach beriladi) 💰\n\n"
+            "📉 Minimal foiz:\n"
+            "Atigi 2,2% — siz uchun maksimal foyda ⚡\n\n"
+            "🏆 Katta balans = katta bonus:\n"
+            "1 mln so'm yig'ing — 50 000 so'm bonus oling 🎯\n\n"
+            "💳 Qulay to'lov:\n"
+            "Click / Payme orqali to'ldiring va 5% keshbek oling 🔥\n\n"
+            "📜 Ishonch va rasmiylik:\n"
+            "Safargo — sertifikatlangan taksopark ✔️\n\n"
+            "🚘 Qo'shimcha imkoniyatlar:\n"
+            "✅ Litsenziya nakleyka\n"
+            "✅ Komfort / Komfort+ ochish\n"
+            "✅ Blokdan chiqarish xizmati\n\n"
+            "🚀 Safargo bilan ishlash — bu o'sish, daromad va qulaylik!\n"
+            "Bugunoq bizga qo'shiling 🔥"
+        )
+    elif text == "🔙 Orqaga":
+        await update.message.reply_text("🏠 Asosiy menyu:", reply_markup=kb_main())
+    else:
+        await update.message.reply_text(
+            "Iltimos, /start buyrug'ini bosing yoki menyu tugmalaridan foydalaning.",
+            reply_markup=kb_main()
+        )
+
+# ══════════════════════════════════════════
 #   FASTAPI + WEBHOOK
 # ══════════════════════════════════════════
 
@@ -148,8 +203,12 @@ conv = ConversationHandler(
         TAXSIPARK_MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_taxsipark_menu)],
     },
     fallbacks=[CommandHandler("start", cmd_start)],
+    allow_reentry=True,
 )
 ptb_app.add_handler(conv)
+
+# Global fallback — ConversationHandler dan tashqarida qolgan xabarlar uchun
+ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, global_fallback))
 
 web = FastAPI()
 
@@ -170,8 +229,6 @@ async def startup():
     await ptb_app.initialize()
     await ptb_app.bot.set_webhook(url=WEBHOOK_URL)
     logger.info(f"✅ Webhook o'rnatildi: {WEBHOOK_URL}")
-    # Keep-alive — har 10 daqiqada o'ziga ping
-    import asyncio
     asyncio.create_task(keep_alive())
 
 @web.on_event("shutdown")
@@ -179,7 +236,6 @@ async def shutdown():
     await ptb_app.shutdown()
 
 async def keep_alive():
-    import asyncio
     async with httpx.AsyncClient() as client:
         while True:
             try:
@@ -187,4 +243,4 @@ async def keep_alive():
                 logger.info(f"⏰ Keep-alive ping: {r.status_code}")
             except Exception as e:
                 logger.warning(f"⏰ Keep-alive xatosi: {e}")
-            await asyncio.sleep(600)  # 10 daqiqa
+            await asyncio.sleep(600)
