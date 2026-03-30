@@ -73,7 +73,7 @@ def kb_phone():
 
 def kb_admin_link():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📤 Adminга yuborish", url=f"https://t.me/{ADMIN_USERNAME}")]
+        [InlineKeyboardButton("📤 Hujjat yuborish", url=f"https://t.me/{ADMIN_USERNAME}")]
     ])
 
 # ══════════════════════════════════════════
