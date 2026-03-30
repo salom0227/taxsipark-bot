@@ -30,6 +30,7 @@ from telegram.ext import (
 
 BOT_TOKEN      = "8670099128:AAEaLw1r4GmoVHPOjgk8NXCKJQbksxY5-co"
 ADMIN_USERNAME = "SAFARGO_TAXI"
+ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "@ibrokhim_515"}  # @ siz, katta-kichik harf farq qilmaydi
 RENDER_URL     = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE  = "welcome.png"
 WEBHOOK_PATH   = f"/webhook/{BOT_TOKEN}"
@@ -43,7 +44,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MAIN_MENU, MALUMOT_STATE, ROYHATTAN_NAME, ROYHATTAN_PHONE = range(4)
+# Ro'yxatdan o'tgan foydalanuvchilar (xotirada saqlanadi)
+# { user_id: {"name": "...", "phone": "...", "username": "..."} }
+registered_users: dict = {}
+
+REG_NAME, REG_PHONE, MAIN_MENU = range(3)
 
 # ══════════════════════════════════════════
 #   KLAVIATURALAR
@@ -53,9 +58,8 @@ def kb_main():
     return ReplyKeyboardMarkup(
         [
             ["🚖 Taksopark haqida ma'lumot olish"],
-            ["📝 Ro'yxatdan o'tish"],
             ["📞 Operator bilan bog'lanish"],
-            ["📄 Texpasport va pravangizni yuboring"],
+            ["📝 Ro'yxatdan o'tish"],
         ],
         resize_keyboard=True
     )
@@ -67,19 +71,13 @@ def kb_phone():
         one_time_keyboard=True
     )
 
-def kb_back():
-    return ReplyKeyboardMarkup(
-        [["🔙 Orqaga"]],
-        resize_keyboard=True
-    )
-
 def kb_admin_link():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📤 Hujjatlarni yuborish", url=f"https://t.me/{ADMIN_USERNAME}")]
+        [InlineKeyboardButton("📤 Adminга yuborish", url=f"https://t.me/{ADMIN_USERNAME}")]
     ])
 
 # ══════════════════════════════════════════
-#   MALUMOT MATNI
+#   MATNLAR
 # ══════════════════════════════════════════
 
 MALUMOT_MATNI = (
@@ -115,95 +113,91 @@ BOGLANISH_MATNI = (
     "📱 Telefon: +998(55)515-00-54\n"
 )
 
+HUJJAT_MATNI = (
+    "📋 Prava va texpasportingizni yuboring adminimizga!\n\n"
+    "Hujjatlaringizni rasm yoki fayl shaklida yuboring 👇"
+)
+
 # ══════════════════════════════════════════
-#   HANDLERS
+#   HANDLERS — RO'YXATDAN O'TISH
 # ══════════════════════════════════════════
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     caption = (
         "👋 Salom! 🚖 <b>Taksopark</b> botiga xush kelibsiz!\n\n"
-        "Quyidagi bo'limlardan birini tanlang 👇"
+        "Boshlash uchun <b>to'liq ismingizni</b> kiriting (F.I.Sh) 👇"
     )
     try:
         if os.path.exists(WELCOME_IMAGE):
             with open(WELCOME_IMAGE, "rb") as photo:
                 await update.message.reply_photo(
                     photo=photo, caption=caption,
-                    parse_mode="HTML", reply_markup=kb_main()
+                    parse_mode="HTML"
                 )
         else:
-            await update.message.reply_text(
-                caption, parse_mode="HTML", reply_markup=kb_main()
-            )
+            await update.message.reply_text(caption, parse_mode="HTML")
     except Exception as e:
         logger.error(f"Rasm xatosi: {e}")
-        await update.message.reply_text(
-            caption, parse_mode="HTML", reply_markup=kb_main()
-        )
+        await update.message.reply_text(caption, parse_mode="HTML")
+    return REG_NAME
+
+
+async def handle_reg_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["name"] = update.message.text.strip()
+    await update.message.reply_text(
+        "📱 Telefon raqamingizni yuboring:",
+        reply_markup=kb_phone()
+    )
+    return REG_PHONE
+
+
+async def handle_reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    phone = (
+        update.message.contact.phone_number
+        if update.message.contact
+        else update.message.text.strip()
+    )
+    user = update.effective_user
+    name = context.user_data.get("name", "—")
+
+    # Saqlash
+    registered_users[user.id] = {
+        "name": name,
+        "phone": phone,
+        "username": f"@{user.username}" if user.username else "—",
+    }
+
+    await update.message.reply_text(
+        f"✅ <b>Ro'yxatdan o'tdingiz!</b>\n\n"
+        f"👤 <b>{name}</b>\n"
+        f"📱 <b>{phone}</b>\n\n"
+        f"Tez orada operator siz bilan bog'lanadi! 🚖",
+        parse_mode="HTML",
+        reply_markup=kb_main()
+    )
     return MAIN_MENU
 
+
+# ══════════════════════════════════════════
+#   HANDLERS — ASOSIY MENYU
+# ══════════════════════════════════════════
 
 async def handle_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     if text == "🚖 Taksopark haqida ma'lumot olish":
         await update.message.reply_text(MALUMOT_MATNI, reply_markup=kb_main())
-        return MAIN_MENU
-
-    elif text == "📝 Ro'yxatdan o'tish":
-        await update.message.reply_text(
-            "✏️ <b>To'liq ismingizni</b> kiriting (F.I.Sh):",
-            parse_mode="HTML",
-            reply_markup=kb_back()
-        )
-        return ROYHATTAN_NAME
 
     elif text == "📞 Operator bilan bog'lanish":
         await update.message.reply_text(BOGLANISH_MATNI, reply_markup=kb_main())
-        return MAIN_MENU
 
-    elif text == "📄 Texpasport va pravangizni yuboring":
+    elif text == "📝 Ro'yxatdan o'tish":
         await update.message.reply_text(
-            "📄 Texpasport va pravangizni yuboring!\n\n"
-            "Quyidagi tugmani bosib adminimizga hujjatlaringizni yuboring 👇",
+            HUJJAT_MATNI,
             reply_markup=kb_admin_link()
         )
-        return MAIN_MENU
 
-    return MAIN_MENU
-
-
-async def handle_royhattan_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == "🔙 Orqaga":
-        await update.message.reply_text("🏠 Asosiy menyu:", reply_markup=kb_main())
-        return MAIN_MENU
-    context.user_data["name"] = update.message.text
-    await update.message.reply_text(
-        "📱 Telefon raqamingizni yuboring:",
-        reply_markup=kb_phone()
-    )
-    return ROYHATTAN_PHONE
-
-
-async def handle_royhattan_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text and update.message.text == "🔙 Orqaga":
-        await update.message.reply_text("🏠 Asosiy menyu:", reply_markup=kb_main())
-        return MAIN_MENU
-    phone = (
-        update.message.contact.phone_number
-        if update.message.contact
-        else update.message.text
-    )
-    context.user_data["phone"] = phone
-    await update.message.reply_text(
-        f"✅ Ro'yxatdan o'tdingiz!\n\n"
-        f"👤 <b>{context.user_data.get('name', '')}</b>\n"
-        f"📱 <b>{phone}</b>\n\n"
-        f"Tez orada operator siz bilan bog'lanadi! 🚖",
-        parse_mode="HTML",
-        reply_markup=kb_main()
-    )
     return MAIN_MENU
 
 
@@ -213,31 +207,55 @@ async def global_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text == "🚖 Taksopark haqida ma'lumot olish":
         await update.message.reply_text(MALUMOT_MATNI, reply_markup=kb_main())
-    elif text == "📝 Ro'yxatdan o'tish":
-        await update.message.reply_text(
-            "✏️ <b>To'liq ismingizni</b> kiriting (F.I.Sh):",
-            parse_mode="HTML",
-            reply_markup=kb_back()
-        )
     elif text == "📞 Operator bilan bog'lanish":
         await update.message.reply_text(BOGLANISH_MATNI, reply_markup=kb_main())
-    elif text == "📄 Texpasport va pravangizni yuboring":
-        await update.message.reply_text(
-            "📄 Texpasport va pravangizni yuboring!\n\n"
-            "Quyidagi tugmani bosib adminimizga hujjatlaringizni yuboring 👇",
-            reply_markup=kb_admin_link()
-        )
+    elif text == "📝 Ro'yxatdan o'tish":
+        await update.message.reply_text(HUJJAT_MATNI, reply_markup=kb_admin_link())
     else:
         await update.message.reply_text(
             "Iltimos, /start buyrug'ini bosing.", reply_markup=kb_main()
         )
+
+
+# ══════════════════════════════════════════
+#   ADMIN PANEL
+# ══════════════════════════════════════════
+
+async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_username = (update.effective_user.username or "").upper()
+    allowed = {u.upper() for u in ADMIN_USERNAMES}
+    if user_username not in allowed:
+        await update.message.reply_text("⛔ Sizda ruxsat yo'q.")
+        return
+
+    if not registered_users:
+        await update.message.reply_text("📋 Hali hech kim ro'yxatdan o'tmagan.")
+        return
+
+    lines = [
+        "👥 <b>Ro'yxatdan o'tgan foydalanuvchilar:</b>\n",
+        f"{'№':<4} {'Ism':<20} {'Telefon':<16} {'Username'}",
+        "─" * 55,
+    ]
+
+    for i, (uid, data) in enumerate(registered_users.items(), start=1):
+        lines.append(
+            f"{i:<4} {data['name']:<20} {data['phone']:<16} {data['username']}"
+        )
+
+    lines.append(f"\n<b>Jami: {len(registered_users)} ta</b>")
+
+    await update.message.reply_text(
+        "<pre>" + "\n".join(lines) + "</pre>",
+        parse_mode="HTML"
+    )
+
 
 # ══════════════════════════════════════════
 #   KEEP ALIVE
 # ══════════════════════════════════════════
 
 async def keep_alive():
-    """Har 10 daqiqada o'ziga ping — Render uxlamasin"""
     while True:
         await asyncio.sleep(600)
         try:
@@ -246,6 +264,7 @@ async def keep_alive():
                 logger.info(f"⏰ Keep-alive: {r.status_code}")
         except Exception as e:
             logger.warning(f"⏰ Keep-alive xatosi: {e}")
+
 
 # ══════════════════════════════════════════
 #   PTB APPLICATION
@@ -256,15 +275,18 @@ ptb_app = Application.builder().token(BOT_TOKEN).build()
 conv = ConversationHandler(
     entry_points=[CommandHandler("start", cmd_start)],
     states={
-        MAIN_MENU:       [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu)],
-        ROYHATTAN_NAME:  [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_royhattan_name)],
-        ROYHATTAN_PHONE: [MessageHandler(filters.CONTACT | (filters.TEXT & ~filters.COMMAND), handle_royhattan_phone)],
+        REG_NAME:  [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_reg_name)],
+        REG_PHONE: [MessageHandler(filters.CONTACT | (filters.TEXT & ~filters.COMMAND), handle_reg_phone)],
+        MAIN_MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu)],
     },
     fallbacks=[CommandHandler("start", cmd_start)],
     allow_reentry=True,
 )
+
 ptb_app.add_handler(conv)
+ptb_app.add_handler(CommandHandler("admin", cmd_admin))
 ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, global_fallback))
+
 
 # ══════════════════════════════════════════
 #   FASTAPI
@@ -272,13 +294,11 @@ ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, global_fallb
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     await ptb_app.initialize()
     await ptb_app.bot.set_webhook(url=WEBHOOK_URL)
     logger.info(f"✅ Webhook o'rnatildi: {WEBHOOK_URL}")
     asyncio.create_task(keep_alive())
     yield
-    # Shutdown
     await ptb_app.shutdown()
     logger.info("🛑 Bot to'xtatildi")
 
