@@ -23,6 +23,7 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
+from telegram.request import HTTPXRequest
 
 # ✅ DB import
 from database import init_db, close_pool, save_user, get_all_users
@@ -33,7 +34,7 @@ from database import init_db, close_pool, save_user, get_all_users
 
 BOT_TOKEN      = "8670099128:AAEaLw1r4GmoVHPOjgk8NXCKJQbksxY5-co"
 ADMIN_USERNAME = "SAFARGO_TAXI"
-ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "@ibrokhim_515"}  # @ siz, katta-kichik harf farq qilmaydi
+ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "ibrokhim_515"}
 RENDER_URL     = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE  = "welcome.png"
 WEBHOOK_PATH   = f"/webhook/{BOT_TOKEN}"
@@ -47,8 +48,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Ro'yxatdan o'tgan foydalanuvchilar (xotirada saqlanadi)
-# { user_id: {"name": "...", "phone": "...", "username": "..."} }
 registered_users: dict = {}
 
 REG_NAME, REG_PHONE, MAIN_MENU = range(3)
@@ -164,14 +163,12 @@ async def handle_reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     name = context.user_data.get("name", "—")
 
-    # Xotirada saqlash (avvalgidek)
     registered_users[user.id] = {
         "name": name,
         "phone": phone,
         "username": f"@{user.username}" if user.username else "—",
     }
 
-    # ✅ DB ga ham saqlash
     await save_user(
         user.id, name, phone,
         f"@{user.username}" if user.username else "—"
@@ -211,7 +208,6 @@ async def handle_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def global_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Bot restart bo'lsa ham tugmalar ishlaydi"""
     text = update.message.text
 
     if text == "🚖 Taksopark haqida ma'lumot olish":
@@ -237,7 +233,6 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Sizda ruxsat yo'q.")
         return
 
-    # ✅ DB dan olish (xotira o'rniga)
     users = await get_all_users()
 
     if not users:
@@ -279,10 +274,20 @@ async def keep_alive():
 
 
 # ══════════════════════════════════════════
-#   PTB APPLICATION
+#   PTB APPLICATION — timeout oshirildi ✅
 # ══════════════════════════════════════════
 
-ptb_app = Application.builder().token(BOT_TOKEN).build()
+ptb_app = (
+    Application.builder()
+    .token(BOT_TOKEN)
+    .request(HTTPXRequest(
+        read_timeout=30,
+        write_timeout=30,
+        connect_timeout=30,
+        pool_timeout=30,
+    ))
+    .build()
+)
 
 conv = ConversationHandler(
     entry_points=[CommandHandler("start", cmd_start)],
@@ -306,14 +311,14 @@ ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, global_fallb
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()                # ✅ jadval yaratiladi
+    await init_db()
     await ptb_app.initialize()
     await ptb_app.bot.set_webhook(url=WEBHOOK_URL)
     logger.info(f"✅ Webhook o'rnatildi: {WEBHOOK_URL}")
     asyncio.create_task(keep_alive())
     yield
     await ptb_app.shutdown()
-    await close_pool()             # ✅ DB yopiladi
+    await close_pool()
     logger.info("🛑 Bot to'xtatildi")
 
 web = FastAPI(lifespan=lifespan)
