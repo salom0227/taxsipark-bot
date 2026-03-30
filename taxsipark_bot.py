@@ -34,7 +34,7 @@ from database import init_db, close_pool, save_user, get_all_users
 
 BOT_TOKEN      = "8670099128:AAEaLw1r4GmoVHPOjgk8NXCKJQbksxY5-co"
 ADMIN_USERNAME = "SAFARGO_TAXI"
-ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "ibrokhim_515"}
+ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "ibrokhim_515", "Fixonee"}
 RENDER_URL     = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE  = "welcome.png"
 WEBHOOK_PATH   = f"/webhook/{BOT_TOKEN}"
@@ -229,6 +229,13 @@ async def global_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_username = (update.effective_user.username or "").upper()
     allowed = {u.upper() for u in ADMIN_USERNAMES}
+
+    # VAQTINCHALIK — tekshirish uchun
+    await update.message.reply_text(
+        f"Sizning username: `{user_username}`\nRuxsat berilganlar: `{allowed}`",
+        parse_mode="Markdown"
+    )
+
     if user_username not in allowed:
         await update.message.reply_text("⛔ Sizda ruxsat yo'q.")
         return
@@ -274,7 +281,7 @@ async def keep_alive():
 
 
 # ══════════════════════════════════════════
-#   PTB APPLICATION — timeout oshirildi ✅
+#   PTB APPLICATION
 # ══════════════════════════════════════════
 
 ptb_app = (
