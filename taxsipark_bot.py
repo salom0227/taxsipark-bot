@@ -24,6 +24,9 @@ from telegram.ext import (
     ContextTypes,
 )
 
+# ✅ DB import
+from database import init_db, close_pool, save_user, get_all_users
+
 # ══════════════════════════════════════════
 #   SOZLAMALAR
 # ══════════════════════════════════════════
@@ -161,12 +164,18 @@ async def handle_reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     name = context.user_data.get("name", "—")
 
-    # Saqlash
+    # Xotirada saqlash (avvalgidek)
     registered_users[user.id] = {
         "name": name,
         "phone": phone,
         "username": f"@{user.username}" if user.username else "—",
     }
+
+    # ✅ DB ga ham saqlash
+    await save_user(
+        user.id, name, phone,
+        f"@{user.username}" if user.username else "—"
+    )
 
     await update.message.reply_text(
         f"✅ <b>Ro'yxatdan o'tdingiz!</b>\n\n"
@@ -228,7 +237,10 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Sizda ruxsat yo'q.")
         return
 
-    if not registered_users:
+    # ✅ DB dan olish (xotira o'rniga)
+    users = await get_all_users()
+
+    if not users:
         await update.message.reply_text("📋 Hali hech kim ro'yxatdan o'tmagan.")
         return
 
@@ -238,12 +250,12 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "─" * 55,
     ]
 
-    for i, (uid, data) in enumerate(registered_users.items(), start=1):
+    for i, u in enumerate(users, start=1):
         lines.append(
-            f"{i:<4} {data['name']:<20} {data['phone']:<16} {data['username']}"
+            f"{i:<4} {u['name']:<20} {u['phone']:<16} {u['username']}"
         )
 
-    lines.append(f"\n<b>Jami: {len(registered_users)} ta</b>")
+    lines.append(f"\n<b>Jami: {len(users)} ta</b>")
 
     await update.message.reply_text(
         "<pre>" + "\n".join(lines) + "</pre>",
@@ -294,12 +306,14 @@ ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, global_fallb
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()                # ✅ jadval yaratiladi
     await ptb_app.initialize()
     await ptb_app.bot.set_webhook(url=WEBHOOK_URL)
     logger.info(f"✅ Webhook o'rnatildi: {WEBHOOK_URL}")
     asyncio.create_task(keep_alive())
     yield
     await ptb_app.shutdown()
+    await close_pool()             # ✅ DB yopiladi
     logger.info("🛑 Bot to'xtatildi")
 
 web = FastAPI(lifespan=lifespan)
