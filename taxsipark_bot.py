@@ -31,6 +31,7 @@ from database import init_db, close_pool, save_user, get_all_users, log_login, g
 BOT_TOKEN      = "8670099128:AAEaLw1r4GmoVHPOjgk8NXCKJQbksxY5-co"
 ADMIN_USERNAME = "SAFARGO_TAXI"
 ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "ibrokhim_515", "Fixonee"}
+ADMIN_IDS = [5567499156]
 RENDER_URL     = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE  = "welcome.png"
 WEBHOOK_PATH   = f"/webhook/{BOT_TOKEN}"
@@ -163,13 +164,13 @@ async def handle_reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔗 Username: {username_str}\n"
         f"🕐 Vaqt: {now}"
     )
-    for admin in ADMIN_USERNAMES:
+    for admin_id in ADMIN_IDS:
         try:
             await context.bot.send_message(
-                chat_id=f"@{admin}", text=notif, parse_mode="HTML"
+                chat_id=admin_id, text=notif, parse_mode="HTML"
             )
         except Exception as e:
-            logger.warning(f"Admin {admin} ga xabar yuborilmadi: {e}")
+            logger.warning(f"Admin {admin_id} ga xabar yuborilmadi: {e}")
 
     await update.message.reply_text(
         f"✅ <b>Ro'yxatdan o'tdingiz!</b>\n\n"
