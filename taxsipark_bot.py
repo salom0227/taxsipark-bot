@@ -6,6 +6,7 @@ import logging
 import os
 import asyncio
 import httpx
+from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from telegram import (
@@ -25,12 +26,7 @@ from telegram.ext import (
 )
 from telegram.request import HTTPXRequest
 
-# ✅ DB import
-from database import init_db, close_pool, save_user, get_all_users
-
-# ══════════════════════════════════════════
-#   SOZLAMALAR
-# ══════════════════════════════════════════
+from database import init_db, close_pool, save_user, get_all_users, log_login, get_users_with_time
 
 BOT_TOKEN      = "8670099128:AAEaLw1r4GmoVHPOjgk8NXCKJQbksxY5-co"
 ADMIN_USERNAME = "SAFARGO_TAXI"
@@ -39,8 +35,6 @@ RENDER_URL     = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.co
 WELCOME_IMAGE  = "welcome.png"
 WEBHOOK_PATH   = f"/webhook/{BOT_TOKEN}"
 WEBHOOK_URL    = f"{RENDER_URL}{WEBHOOK_PATH}"
-
-# ══════════════════════════════════════════
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -51,10 +45,6 @@ logger = logging.getLogger(__name__)
 registered_users: dict = {}
 
 REG_NAME, REG_PHONE, MAIN_MENU = range(3)
-
-# ══════════════════════════════════════════
-#   KLAVIATURALAR
-# ══════════════════════════════════════════
 
 def kb_main():
     return ReplyKeyboardMarkup(
@@ -78,10 +68,6 @@ def kb_admin_link():
         [InlineKeyboardButton("📤 Hujjat yuborish", url=f"https://t.me/{ADMIN_USERNAME}")]
     ])
 
-# ══════════════════════════════════════════
-#   MATNLAR
-# ══════════════════════════════════════════
-
 MALUMOT_MATNI = (
     "🚖 Taksopark — haydovchilar uchun tezkor ro'yxatdan o'tish tizimi\n"
     "🚖 Safargo — haydovchilar uchun eng qulay taksopark!\n\n"
@@ -91,7 +77,7 @@ MALUMOT_MATNI = (
     "Ro'yxatdan o'tganingiz zahoti 40 000 so'm bonus sizniki!\n\n"
     "🔥 Har oy sovg'alar:\n"
     "Safargo'da har oy yangi bonus va aksiyalar bo'lib turadi 🎉\n\n"
-    "👨‍👨‍👦 Do'st olib keling – pul ishlang:\n"
+    "👨👨👦 Do'st olib keling – pul ishlang:\n"
     "Har bir do'st uchun 50 000 so'm\n"
     "(50 ta zakaz bajargach beriladi) 💰\n\n"
     "📉 Minimal foiz:\n"
@@ -120,10 +106,6 @@ HUJJAT_MATNI = (
     "Hujjatlaringizni rasm yoki fayl shaklida yuboring 👇"
 )
 
-# ══════════════════════════════════════════
-#   HANDLERS — RO'YXATDAN O'TISH
-# ══════════════════════════════════════════
-
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     caption = (
@@ -134,8 +116,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if os.path.exists(WELCOME_IMAGE):
             with open(WELCOME_IMAGE, "rb") as photo:
                 await update.message.reply_photo(
-                    photo=photo, caption=caption,
-                    parse_mode="HTML"
+                    photo=photo, caption=caption, parse_mode="HTML"
                 )
         else:
             await update.message.reply_text(caption, parse_mode="HTML")
@@ -162,17 +143,33 @@ async def handle_reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     user = update.effective_user
     name = context.user_data.get("name", "—")
+    username_str = f"@{user.username}" if user.username else "—"
 
     registered_users[user.id] = {
         "name": name,
         "phone": phone,
-        "username": f"@{user.username}" if user.username else "—",
+        "username": username_str,
     }
 
-    await save_user(
-        user.id, name, phone,
-        f"@{user.username}" if user.username else "—"
+    await save_user(user.id, name, phone, username_str)
+    await log_login(user.id)
+
+    # Adminga bildirishnoma
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    notif = (
+        f"🆕 <b>Yangi foydalanuvchi ro'yxatdan o'tdi!</b>\n\n"
+        f"👤 Ism: <b>{name}</b>\n"
+        f"📱 Telefon: <b>{phone}</b>\n"
+        f"🔗 Username: {username_str}\n"
+        f"🕐 Vaqt: {now}"
     )
+    for admin in ADMIN_USERNAMES:
+        try:
+            await context.bot.send_message(
+                chat_id=f"@{admin}", text=notif, parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.warning(f"Admin {admin} ga xabar yuborilmadi: {e}")
 
     await update.message.reply_text(
         f"✅ <b>Ro'yxatdan o'tdingiz!</b>\n\n"
@@ -185,24 +182,15 @@ async def handle_reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MAIN_MENU
 
 
-# ══════════════════════════════════════════
-#   HANDLERS — ASOSIY MENYU
-# ══════════════════════════════════════════
-
 async def handle_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     if text == "🚖 Taksopark haqida ma'lumot olish":
         await update.message.reply_text(MALUMOT_MATNI, reply_markup=kb_main())
-
     elif text == "📞 Operator bilan bog'lanish":
         await update.message.reply_text(BOGLANISH_MATNI, reply_markup=kb_main())
-
     elif text == "📝 Ro'yxatdan o'tish":
-        await update.message.reply_text(
-            HUJJAT_MATNI,
-            reply_markup=kb_admin_link()
-        )
+        await update.message.reply_text(HUJJAT_MATNI, reply_markup=kb_admin_link())
 
     return MAIN_MENU
 
@@ -222,52 +210,38 @@ async def global_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-# ══════════════════════════════════════════
-#   ADMIN PANEL
-# ══════════════════════════════════════════
-
 async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_username = (update.effective_user.username or "").upper()
     allowed = {u.upper() for u in ADMIN_USERNAMES}
-
-    # VAQTINCHALIK — tekshirish uchun
-    await update.message.reply_text(
-        f"Sizning username: `{user_username}`\nRuxsat berilganlar: `{allowed}`",
-        parse_mode="Markdown"
-    )
 
     if user_username not in allowed:
         await update.message.reply_text("⛔ Sizda ruxsat yo'q.")
         return
 
-    users = await get_all_users()
+    users = await get_users_with_time()
 
     if not users:
         await update.message.reply_text("📋 Hali hech kim ro'yxatdan o'tmagan.")
         return
 
-    lines = [
-        "👥 <b>Ro'yxatdan o'tgan foydalanuvchilar:</b>\n",
-        f"{'№':<4} {'Ism':<20} {'Telefon':<16} {'Username'}",
-        "─" * 55,
-    ]
+    lines = ["👥 <b>Ro'yxatdan o'tgan foydalanuvchilar:</b>\n"]
 
     for i, u in enumerate(users, start=1):
+        reg = u['registered_at'].strftime('%d.%m.%Y %H:%M') if u['registered_at'] else '—'
+        last = u['last_login'].strftime('%d.%m.%Y %H:%M') if u['last_login'] else '—'
         lines.append(
-            f"{i:<4} {u['name']:<20} {u['phone']:<16} {u['username']}"
+            f"{i}. <b>{u['name']}</b> | {u['phone']} | {u['username']}\n"
+            f"   📅 Ro'yxat: {reg}\n"
+            f"   🕐 So'nggi kirish: {last}\n"
         )
 
-    lines.append(f"\n<b>Jami: {len(users)} ta</b>")
+    lines.append(f"<b>Jami: {len(users)} ta</b>")
 
-    await update.message.reply_text(
-        "<pre>" + "\n".join(lines) + "</pre>",
-        parse_mode="HTML"
-    )
+    # Telegram 4096 belgi limit — bo'lib yuborish
+    msg = "\n".join(lines)
+    for i in range(0, len(msg), 4000):
+        await update.message.reply_text(msg[i:i+4000], parse_mode="HTML")
 
-
-# ══════════════════════════════════════════
-#   KEEP ALIVE
-# ══════════════════════════════════════════
 
 async def keep_alive():
     while True:
@@ -279,10 +253,6 @@ async def keep_alive():
         except Exception as e:
             logger.warning(f"⏰ Keep-alive xatosi: {e}")
 
-
-# ══════════════════════════════════════════
-#   PTB APPLICATION
-# ══════════════════════════════════════════
 
 ptb_app = (
     Application.builder()
@@ -311,10 +281,6 @@ ptb_app.add_handler(conv)
 ptb_app.add_handler(CommandHandler("admin", cmd_admin))
 ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, global_fallback))
 
-
-# ══════════════════════════════════════════
-#   FASTAPI
-# ══════════════════════════════════════════
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

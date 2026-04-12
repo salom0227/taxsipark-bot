@@ -42,6 +42,13 @@ async def init_db():
                 registered_at TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS logins (
+                id         SERIAL PRIMARY KEY,
+                user_id    BIGINT,
+                logged_at  TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
     logger.info("✅ Database tayyor")
 
 
@@ -54,6 +61,29 @@ async def save_user(user_id: int, name: str, phone: str, username: str):
             ON CONFLICT (user_id) DO UPDATE
             SET name=$2, phone=$3, username=$4
         """, user_id, name, phone, username)
+
+
+async def log_login(user_id: int):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO logins (user_id) VALUES ($1)", user_id
+        )
+
+
+async def get_users_with_time() -> list:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT u.user_id, u.name, u.phone, u.username,
+                   u.registered_at,
+                   MAX(l.logged_at) as last_login
+            FROM users u
+            LEFT JOIN logins l ON u.user_id = l.user_id
+            GROUP BY u.user_id
+            ORDER BY u.registered_at DESC
+        """)
+        return [dict(r) for r in rows]
 
 
 async def get_all_users() -> list:
