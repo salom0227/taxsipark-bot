@@ -31,7 +31,7 @@ from database import init_db, close_pool, save_user, get_all_users, log_login, g
 BOT_TOKEN      = "8670099128:AAEaLw1r4GmoVHPOjgk8NXCKJQbksxY5-co"
 ADMIN_USERNAME = "SAFARGO_TAXI"
 ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "ibrokhim_515", "Fixonee"}
-ADMIN_IDS = [5567499156]
+ADMIN_IDS = [5567499156, 659123909]
 RENDER_URL     = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE  = "welcome.png"
 WEBHOOK_PATH   = f"/webhook/{BOT_TOKEN}"
