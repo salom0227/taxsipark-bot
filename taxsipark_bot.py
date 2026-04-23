@@ -335,6 +335,20 @@ async def handle_reg_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
+    # Admin tugmalarini conversation ichida ham ushlash
+    if is_admin(update):
+        admin_buttons = [
+            "📊 Statistika", "👥 Ro'yxat (Excel)",
+            "✏️ Matnlarni tahrirlash", "📢 Broadcast",
+            "📅 Reklama rejalashtirish", "⏰ Jadval ko'rish", "🔙 Chiqish"
+        ]
+        if text in admin_buttons:
+            await handle_admin_panel(update, context)
+            return MAIN_MENU
+        if context.user_data.get("state") is not None:
+            await handle_broadcast_or_ad_text(update, context)
+            return MAIN_MENU
+
     if text == "🚖 Taksopark haqida ma'lumot olish":
         await update.message.reply_text(TEXTS["malumot"], reply_markup=kb_main())
     elif text == "📞 Operator bilan bog'lanish":
