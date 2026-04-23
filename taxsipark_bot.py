@@ -57,7 +57,7 @@ from database import (
 BOT_TOKEN       = os.environ.get("BOT_TOKEN", "8670099128:AAEaLw1r4GmoVHPOjgk8NXCKJQbksxY5-co")
 ADMIN_USERNAMES = {"SAFARGO_TAXI", "salom0227", "ibrokhim_515", "Fixonee"}
 ADMIN_IDS       = [5567499156, 659123909, 8070344459]
-GROUP_ID        = int(os.environ.get("GROUP_ID", "-5234833498"))
+GROUP_ID        = int(os.environ.get("GROUP_ID", "-1003720489083"))
 RENDER_URL      = os.environ.get("RENDER_URL", "https://taxsipark-bot.onrender.com")
 WELCOME_IMAGE   = "welcome.png"
 WEBHOOK_PATH    = f"/webhook/{BOT_TOKEN}"
